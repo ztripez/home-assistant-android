@@ -65,7 +65,7 @@ fun CameraAreaView(viewModel: CameraAreaViewModel) {
 private fun CameraRow(camera: Entity, viewModel: CameraAreaViewModel) {
     val context = LocalContext.current
     Text(
-        text = camera.friendlyName,
+        text = camera.entityId,
         modifier = Modifier
             .padding(start = 16.dp, bottom = 4.dp)
             .focusable()

@@ -9,14 +9,13 @@ import io.homeassistant.companion.android.BaseActivity
 import io.homeassistant.companion.android.BuildConfig
 import io.homeassistant.companion.android.common.data.authentication.SessionState
 import io.homeassistant.companion.android.common.data.integration.DeviceRegistration
-import io.homeassistant.companion.android.common.data.servers.Server
-import io.homeassistant.companion.android.common.data.servers.ServerConnectionInfo
 import io.homeassistant.companion.android.common.data.servers.ServerManager
-import io.homeassistant.companion.android.common.data.servers.ServerSessionInfo
-import io.homeassistant.companion.android.common.data.servers.ServerType
-import io.homeassistant.companion.android.common.data.servers.ServerUserInfo
+import io.homeassistant.companion.android.database.server.Server
+import io.homeassistant.companion.android.database.server.ServerConnectionInfo
+import io.homeassistant.companion.android.database.server.ServerSessionInfo
+import io.homeassistant.companion.android.database.server.ServerType
+import io.homeassistant.companion.android.database.server.ServerUserInfo
 import io.homeassistant.companion.android.database.sensor.SensorDao
-import io.homeassistant.companion.android.database.settings.WebsocketSetting
 import io.homeassistant.companion.android.onboarding.OnboardApp
 import io.homeassistant.companion.android.onboarding.getMessagingToken
 import io.homeassistant.companion.android.sensors.LocationSensorManager
@@ -84,7 +83,7 @@ class CameraAreaActivity : BaseActivity() {
             val messagingToken = getMessagingToken()
             val formattedUrl = UrlUtil.formattedUrlString(url)
             val server = Server(
-                _name = "",
+                _name = deviceName,
                 type = ServerType.TEMPORARY,
                 connection = ServerConnectionInfo(
                     externalUrl = formattedUrl
@@ -133,12 +132,6 @@ class CameraAreaActivity : BaseActivity() {
     }
 
     private fun setNotifications(serverId: Int, enabled: Boolean) {
-        if (BuildConfig.FLAVOR != "full") {
-            settingViewModel.getSetting(serverId)
-            settingViewModel.updateWebsocketSetting(
-                serverId,
-                if (enabled) WebsocketSetting.ALWAYS else WebsocketSetting.NEVER
-            )
-        }
+        // No-op
     }
 }
