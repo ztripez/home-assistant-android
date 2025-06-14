@@ -1,6 +1,7 @@
 package io.homeassistant.companion.android.tv
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
@@ -10,6 +11,7 @@ import io.homeassistant.companion.android.common.data.integration.Entity
 import io.homeassistant.companion.android.common.data.servers.ServerManager
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AreaRegistryResponse
 import io.homeassistant.companion.android.util.RegistriesDataHandler
+import io.homeassistant.companion.android.tv.CameraPiPActivity
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -59,5 +61,15 @@ class CameraAreaViewModel @Inject constructor(
                 isLoading.value = false
             }
         }
+    }
+
+    fun openCamera(context: Context, camera: Entity) {
+        val serverId = serverManager.getServer()?.id ?: return
+        val intent = CameraPiPActivity.newInstance(
+            context,
+            "entityId:${camera.entityId}",
+            serverId
+        )
+        context.startActivity(intent)
     }
 }

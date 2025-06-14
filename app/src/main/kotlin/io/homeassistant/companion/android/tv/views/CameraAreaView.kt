@@ -1,5 +1,7 @@
 package io.homeassistant.companion.android.tv.views
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -9,6 +11,7 @@ import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -36,7 +39,7 @@ fun CameraAreaView(viewModel: CameraAreaViewModel) {
                             )
                         }
                         items(cameras) { camera ->
-                            CameraRow(camera)
+                            CameraRow(camera, viewModel)
                         }
                     }
                 }
@@ -50,7 +53,7 @@ fun CameraAreaView(viewModel: CameraAreaViewModel) {
                         )
                     }
                     items(noAreaCameras) { camera ->
-                        CameraRow(camera)
+                        CameraRow(camera, viewModel)
                     }
                 }
             }
@@ -59,9 +62,13 @@ fun CameraAreaView(viewModel: CameraAreaViewModel) {
 }
 
 @Composable
-private fun CameraRow(camera: Entity) {
+private fun CameraRow(camera: Entity, viewModel: CameraAreaViewModel) {
+    val context = LocalContext.current
     Text(
         text = camera.friendlyName,
-        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+        modifier = Modifier
+            .padding(start = 16.dp, bottom = 4.dp)
+            .focusable()
+            .clickable { viewModel.openCamera(context, camera) }
     )
 }
