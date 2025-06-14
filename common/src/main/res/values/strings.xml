@@ -1380,4 +1380,6 @@
     <string name="thermostat_tile">Thermostat tile</string>
     <string name="climate_heating">Heating</string>
     <string name="climate_cooling">Cooling</string>
+    <string name="no_area">No area</string>
+    <string name="camera_by_area">Cameras by area</string>
 </resources>

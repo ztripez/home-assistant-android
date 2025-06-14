@@ -168,6 +168,7 @@ class MessagingManager @Inject constructor(
         const val COMMAND_HIGH_ACCURACY_MODE = "command_high_accuracy_mode"
         const val COMMAND_ACTIVITY = "command_activity"
         const val COMMAND_WEBVIEW = "command_webview"
+        const val COMMAND_CAMERA_PIP = "command_camera_pip"
         const val COMMAND_KEEP_SCREEN_ON = "keep_screen_on"
         const val COMMAND_LAUNCH_APP = "command_launch_app"
         const val COMMAND_APP_LOCK = "command_app_lock"
@@ -176,6 +177,7 @@ class MessagingManager @Inject constructor(
         const val COMMAND_SCREEN_BRIGHTNESS_LEVEL = "command_screen_brightness_level"
         const val COMMAND_SCREEN_OFF_TIMEOUT = "command_screen_off_timeout"
         const val COMMAND_FLASHLIGHT = "command_flashlight"
+        const val CAMERA_PATH = "camera_path"
 
         // DND commands
         const val DND_PRIORITY_ONLY = "priority_only"
@@ -231,7 +233,8 @@ class MessagingManager @Inject constructor(
             COMMAND_AUTO_SCREEN_BRIGHTNESS,
             COMMAND_SCREEN_BRIGHTNESS_LEVEL,
             COMMAND_SCREEN_OFF_TIMEOUT,
-            COMMAND_FLASHLIGHT
+            COMMAND_FLASHLIGHT,
+            COMMAND_CAMERA_PIP
         )
         val DND_COMMANDS = listOf(DND_ALARMS_ONLY, DND_ALL, DND_NONE, DND_PRIORITY_ONLY)
         val RM_COMMANDS = listOf(RM_NORMAL, RM_SILENT, RM_VIBRATE)
@@ -466,6 +469,16 @@ class MessagingManager @Inject constructor(
                         }
                         COMMAND_WEBVIEW -> {
                             handleDeviceCommands(jsonData)
+                        }
+                        COMMAND_CAMERA_PIP -> {
+                            if (!jsonData[CAMERA_PATH].isNullOrEmpty()) {
+                                handleDeviceCommands(jsonData)
+                            } else {
+                                Timber.d(
+                                    "Missing camera path for PiP, posting notification to device"
+                                )
+                                sendNotification(jsonData)
+                            }
                         }
                         COMMAND_SCREEN_ON -> {
                             handleDeviceCommands(jsonData)
@@ -730,6 +743,9 @@ class MessagingManager @Inject constructor(
                 } else {
                     openWebview(command, data)
                 }
+            }
+            COMMAND_CAMERA_PIP -> {
+                openCameraPip(data)
             }
             COMMAND_SCREEN_ON -> {
                 if (!command.isNullOrEmpty()) {
@@ -1855,6 +1871,20 @@ class MessagingManager @Inject constructor(
             context.startActivity(intent)
         } catch (e: Exception) {
             Timber.e(e, "Unable to open webview")
+        }
+    }
+
+    private fun openCameraPip(data: Map<String, String>) {
+        try {
+            val serverId = data[THIS_SERVER_ID]!!.toInt()
+            val path = data[CAMERA_PATH]
+            val intent = CameraPiPActivity.newInstance(context, path, serverId)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Timber.e(e, "Unable to open camera pip")
         }
     }
 
