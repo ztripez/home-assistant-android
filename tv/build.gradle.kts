@@ -30,7 +30,8 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.core.splashscreen)
 
-    implementation(libs.okhttp)
+    implementation(platform(libs.okhttp.bom))
+    implementation(libs.okhttp.android)
 
     implementation(libs.iconics.core)
     implementation(libs.appcompat)

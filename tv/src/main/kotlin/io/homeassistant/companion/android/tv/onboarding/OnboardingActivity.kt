@@ -69,6 +69,7 @@ import io.homeassistant.companion.android.common.data.HomeAssistantApis
 import io.homeassistant.companion.android.common.data.authentication.impl.AuthenticationService
 import io.homeassistant.companion.android.common.data.integration.DeviceRegistration
 import io.homeassistant.companion.android.common.data.servers.ServerManager
+import io.homeassistant.companion.android.common.util.AppVersion
 import io.homeassistant.companion.android.database.server.Server
 import io.homeassistant.companion.android.database.server.ServerConnectionInfo
 import io.homeassistant.companion.android.database.server.ServerSessionInfo
@@ -705,7 +706,7 @@ fun IntegrationScreen(
                                 serverManager.authenticationRepository(serverId).registerAuthorizationCode(authCode)
                                 serverManager.integrationRepository(serverId).registerDevice(
                                     DeviceRegistration(
-                                        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                                        AppVersion.from(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                                         deviceName
                                     )
                                 )

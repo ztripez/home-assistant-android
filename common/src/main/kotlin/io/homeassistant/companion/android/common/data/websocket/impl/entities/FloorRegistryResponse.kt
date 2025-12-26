@@ -3,11 +3,10 @@ package io.homeassistant.companion.android.common.data.websocket.impl.entities
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class AreaRegistryResponse(
-    val areaId: String,
+data class FloorRegistryResponse(
+    val floorId: String,
     val name: String,
-    val picture: String? = null,
+    val level: Int? = null,
     val icon: String? = null,
-    val floorId: String? = null,
     val aliases: List<String> = emptyList(),
 )

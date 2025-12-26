@@ -1395,7 +1395,7 @@
     <string name="wear_mtls_deselect_file">Deselect file</string>
     <string name="set_home_network_title">What is your home network?</string>
     <string name="set_home_network_wifi_name">Name of the Wi-Fi network at home</string>
-    <string name="set_home_network_content">For the best experience, Home Assistant needs to know when you’re connected to your home network.</string>
+    <string name="set_home_network_content">For the best experience, Home Assistant needs to know when you\'re connected to your home network.</string>
     <string name="set_home_network_next">Next</string>
     <string name="connection_error_url_info">The app is currently connecting to</string>
     <string name="connection_error_more_details">More details</string>
@@ -1413,4 +1413,13 @@
     <string name="notification_permission_dialog_content">Enable notifications and get what\'s happening in your home, from detecting leaks to doors left open. You have full control over the notifications you receive and what they tell you.</string>
     <string name="notification_permission_dialog_allow">Allow notifications</string>
     <string name="notification_permission_dialog_deny">Do not allow</string>
+    <string name="sensor_name_tv">TV sensors</string>
+    <string name="sensor_name_hdmi_cec_enabled">HDMI CEC enabled</string>
+    <string name="sensor_description_hdmi_cec_enabled">Indicates whether HDMI CEC is available on the device</string>
+    <string name="sensor_name_display_resolution">Display resolution</string>
+    <string name="sensor_description_display_resolution">The current display resolution in pixels</string>
+    <string name="sensor_name_display_refresh_rate">Display refresh rate</string>
+    <string name="sensor_description_display_refresh_rate">The current display refresh rate in Hz</string>
+    <string name="sensor_name_hdr_capabilities">HDR capabilities</string>
+    <string name="sensor_description_hdr_capabilities">Supported HDR formats on the display</string>
 </resources>

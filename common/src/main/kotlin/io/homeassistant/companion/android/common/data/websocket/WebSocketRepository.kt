@@ -5,6 +5,7 @@ import io.homeassistant.companion.android.common.data.servers.ServerManager
 import io.homeassistant.companion.android.common.data.websocket.impl.WebSocketRepositoryImpl
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AreaRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AreaRegistryUpdatedEvent
+import io.homeassistant.companion.android.common.data.websocket.impl.entities.FloorRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AssistPipelineEvent
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AssistPipelineListResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AssistPipelineResponse
@@ -36,6 +37,7 @@ interface WebSocketRepository {
     suspend fun getConfig(): GetConfigResponse?
     suspend fun getStates(): List<EntityResponse>?
     suspend fun getAreaRegistry(): List<AreaRegistryResponse>?
+    suspend fun getFloorRegistry(): List<FloorRegistryResponse>?
     suspend fun getDeviceRegistry(): List<DeviceRegistryResponse>?
     suspend fun getEntityRegistry(): List<EntityRegistryResponse>?
     suspend fun getEntityRegistryFor(entityId: String): EntityRegistryResponse?

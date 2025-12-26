@@ -21,6 +21,7 @@ import io.homeassistant.companion.android.common.data.websocket.impl.WebSocketCo
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AreaRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AreaRegistryUpdatedEvent
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AssistPipelineEvent
+import io.homeassistant.companion.android.common.data.websocket.impl.entities.FloorRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AssistPipelineListResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AssistPipelineResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.CompressedStateChangedEvent
@@ -148,6 +149,16 @@ class WebSocketRepositoryImpl internal constructor(
         val socketResponse = webSocketCore.sendMessage(
             mapOf(
                 "type" to "config/area_registry/list",
+            ),
+        )
+
+        return mapResponse(socketResponse)
+    }
+
+    override suspend fun getFloorRegistry(): List<FloorRegistryResponse>? {
+        val socketResponse = webSocketCore.sendMessage(
+            mapOf(
+                "type" to "config/floor_registry/list",
             ),
         )
 

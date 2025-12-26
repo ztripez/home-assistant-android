@@ -25,6 +25,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
+import com.mikepenz.iconics.IconicsDrawable
+import com.mikepenz.iconics.compose.Image
+import com.mikepenz.iconics.typeface.library.community.material.CommunityMaterial
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,9 +55,13 @@ import io.homeassistant.companion.android.common.data.integration.domain
 import io.homeassistant.companion.android.common.data.servers.ServerManager
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AreaRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.EntityRegistryResponse
+import io.homeassistant.companion.android.common.data.websocket.impl.entities.FloorRegistryResponse
+import io.homeassistant.companion.android.common.data.websocket.impl.entities.GetConfigResponse
 import io.homeassistant.companion.android.tv.onboarding.OnboardingActivity
+import io.homeassistant.companion.android.tv.settings.SettingsActivity
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
@@ -71,7 +80,8 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Check if user is registered/onboarded
-        if (!serverManager.isRegistered()) {
+        val isRegistered = runBlocking { serverManager.isRegistered() }
+        if (!isRegistered) {
             startActivity(OnboardingActivity.newInstance(this))
             finish()
             return
@@ -82,7 +92,7 @@ class HomeActivity : ComponentActivity() {
                 TvHomeScreen(
                     serverManager = serverManager,
                     onSettingsClick = {
-                        // TODO: Navigate to settings
+                        startActivity(SettingsActivity.newInstance(this))
                     },
                     onCameraClick = { entityId ->
                         // TODO: Open camera view
@@ -100,7 +110,9 @@ fun TvHomeScreen(
     onCameraClick: (String) -> Unit
 ) {
     var isLoading by remember { mutableStateOf(true) }
+    var instanceName by remember { mutableStateOf("Home Assistant") }
     var areas by remember { mutableStateOf<List<AreaRegistryResponse>>(emptyList()) }
+    var floors by remember { mutableStateOf<List<FloorRegistryResponse>>(emptyList()) }
     var entities by remember { mutableStateOf<Map<String, Entity>>(emptyMap()) }
     var entityRegistry by remember { mutableStateOf<List<EntityRegistryResponse>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -110,10 +122,18 @@ fun TvHomeScreen(
             try {
                 val server = serverManager.getServer()
                 if (server != null) {
-                    areas = serverManager.webSocketRepository(server.id).getAreaRegistry() ?: emptyList()
-                    entityRegistry = serverManager.webSocketRepository(server.id).getEntityRegistry() ?: emptyList()
+                    val wsRepo = serverManager.webSocketRepository(server.id)
 
-                    val statesResponse = serverManager.webSocketRepository(server.id).getStates()
+                    // Get config for instance name
+                    val config = wsRepo.getConfig()
+                    instanceName = config?.locationName ?: "Home Assistant"
+
+                    // Get registries
+                    areas = wsRepo.getAreaRegistry() ?: emptyList()
+                    floors = wsRepo.getFloorRegistry() ?: emptyList()
+                    entityRegistry = wsRepo.getEntityRegistry() ?: emptyList()
+
+                    val statesResponse = wsRepo.getStates()
                     entities = statesResponse?.associate { response ->
                         response.entityId to Entity(
                             response.entityId,
@@ -150,7 +170,7 @@ fun TvHomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Home Assistant",
+                    text = instanceName,
                     style = MaterialTheme.typography.headlineLarge,
                     color = Color.White
                 )
@@ -212,52 +232,75 @@ fun TvHomeScreen(
                         }
                     }
 
-                    // Areas Section
+                    // Areas Section - grouped by floor
                     if (areas.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = "Areas",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color.White
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                contentPadding = PaddingValues(end = 16.dp)
-                            ) {
-                                items(areas) { area ->
-                                    val areaEntities = entityRegistry
-                                        .filter { it.areaId == area.areaId }
-                                        .mapNotNull { reg -> entities[reg.entityId] }
+                        // Sort floors by level (ascending), null levels go at the end
+                        val sortedFloors = floors.sortedBy { it.level ?: Int.MAX_VALUE }
 
-                                    AreaCard(
-                                        area = area,
-                                        entityCount = areaEntities.size,
-                                        onClick = { /* TODO: Open area view */ }
+                        // Group areas by floor
+                        val areasByFloor = areas.groupBy { it.floorId }
+                        val areasWithoutFloor = areasByFloor[null] ?: emptyList()
+
+                        // Show areas for each floor
+                        sortedFloors.forEach { floor ->
+                            val floorAreas = areasByFloor[floor.floorId] ?: emptyList()
+                            if (floorAreas.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = floor.name,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = Color.White
                                     )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        contentPadding = PaddingValues(end = 16.dp)
+                                    ) {
+                                        items(floorAreas) { area ->
+                                            val areaEntities = entityRegistry
+                                                .filter { it.areaId == area.areaId }
+                                                .mapNotNull { reg -> entities[reg.entityId] }
+
+                                            AreaCard(
+                                                area = area,
+                                                entityCount = areaEntities.size,
+                                                onClick = { /* TODO: Open area view */ }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Show areas without floor assignment
+                        if (areasWithoutFloor.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = if (floors.isNotEmpty()) "Other Areas" else "Areas",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    contentPadding = PaddingValues(end = 16.dp)
+                                ) {
+                                    items(areasWithoutFloor) { area ->
+                                        val areaEntities = entityRegistry
+                                            .filter { it.areaId == area.areaId }
+                                            .mapNotNull { reg -> entities[reg.entityId] }
+
+                                        AreaCard(
+                                            area = area,
+                                            entityCount = areaEntities.size,
+                                            onClick = { /* TODO: Open area view */ }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // Quick Actions
-                    item {
-                        Text(
-                            text = "Quick Actions",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            TvButton(
-                                icon = Icons.Default.Settings,
-                                label = "Manage Sensors",
-                                onClick = onSettingsClick
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -359,18 +402,46 @@ fun AreaCard(
             focusedContainerColor = Color(0xFF2D2D44)
         )
     ) {
+        val context = LocalContext.current
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                imageVector = Icons.Default.Home,
-                contentDescription = "Area",
-                tint = Color(0xFF03DAC5),
-                modifier = Modifier.size(32.dp)
-            )
+            // Use MDI icon if available, fallback to default Home icon
+            val areaIcon = area.icon
+            if (areaIcon != null && areaIcon.startsWith("mdi:")) {
+                val mdiName = areaIcon.removePrefix("mdi:")
+                val iconName = "cmd_${mdiName.replace('-', '_')}"
+                val icon = try {
+                    CommunityMaterial.getIcon(iconName)
+                } catch (e: Exception) {
+                    null
+                }
+                if (icon != null) {
+                    Image(
+                        asset = icon,
+                        colorFilter = ColorFilter.tint(Color(0xFF03DAC5)),
+                        modifier = Modifier.size(32.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = "Area",
+                        tint = Color(0xFF03DAC5),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Area",
+                    tint = Color(0xFF03DAC5),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
 
             Column {
                 Text(
