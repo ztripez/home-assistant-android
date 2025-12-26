@@ -78,6 +78,8 @@ screenshot = "0.0.1-alpha12" # On the next update, replace the hack in AndroidCo
 sentry-android = "8.29.0"
 timber = "5.0.1"
 tools-desugar-jdk-libs = "2.1.5"
+tv-foundation = "1.0.0-alpha12"
+tv-material = "1.0.1"
 turbine = "1.2.1"
 watchfaceComplicationsDataSourceKtx = "1.2.1"
 wear = "1.3.0"
@@ -237,6 +239,8 @@ screenshot-validation-api = { group = "com.android.tools.screenshot", name = "sc
 sentry-android-core = { module = "io.sentry:sentry-android-core", version.ref = "sentry-android" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 tools-desugar-jdk = { module = "com.android.tools:desugar_jdk_libs", version.ref = "tools-desugar-jdk-libs" }
+tv-foundation = { module = "androidx.tv:tv-foundation", version.ref = "tv-foundation" }
+tv-material = { module = "androidx.tv:tv-material", version.ref = "tv-material" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 wear = { module = "androidx.wear:wear", version.ref = "wear" }
 wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear-compose" }
