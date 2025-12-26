@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonDefaults
@@ -50,17 +51,27 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import dagger.hilt.android.AndroidEntryPoint
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import io.homeassistant.companion.android.common.data.integration.Entity
 import io.homeassistant.companion.android.common.data.integration.domain
 import io.homeassistant.companion.android.common.data.servers.ServerManager
+import io.homeassistant.companion.android.common.data.servers.UrlState
+import io.homeassistant.companion.android.util.UrlUtil
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.AreaRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.EntityRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.FloorRegistryResponse
 import io.homeassistant.companion.android.common.data.websocket.impl.entities.GetConfigResponse
+import io.homeassistant.companion.android.tv.camera.CameraActivity
 import io.homeassistant.companion.android.tv.onboarding.OnboardingActivity
 import io.homeassistant.companion.android.tv.settings.SettingsActivity
+import java.net.URL
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
@@ -95,7 +106,7 @@ class HomeActivity : ComponentActivity() {
                         startActivity(SettingsActivity.newInstance(this))
                     },
                     onCameraClick = { entityId ->
-                        // TODO: Open camera view
+                        startActivity(CameraActivity.newInstance(this, entityId))
                     }
                 )
             }
@@ -115,6 +126,7 @@ fun TvHomeScreen(
     var floors by remember { mutableStateOf<List<FloorRegistryResponse>>(emptyList()) }
     var entities by remember { mutableStateOf<Map<String, Entity>>(emptyMap()) }
     var entityRegistry by remember { mutableStateOf<List<EntityRegistryResponse>>(emptyList()) }
+    var baseUrl by remember { mutableStateOf<URL?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -127,6 +139,10 @@ fun TvHomeScreen(
                     // Get config for instance name
                     val config = wsRepo.getConfig()
                     instanceName = config?.locationName ?: "Home Assistant"
+
+                    // Get base URL for camera thumbnails
+                    val urlState = serverManager.connectionStateProvider(server.id).urlFlow().first()
+                    baseUrl = if (urlState is UrlState.HasUrl) urlState.url else null
 
                     // Get registries
                     areas = wsRepo.getAreaRegistry() ?: emptyList()
@@ -225,6 +241,7 @@ fun TvHomeScreen(
                                 items(cameras.toList()) { camera ->
                                     CameraCard(
                                         entity = camera,
+                                        baseUrl = baseUrl,
                                         onClick = { onCameraClick(camera.entityId) }
                                     )
                                 }
@@ -336,11 +353,45 @@ fun TvButton(
     }
 }
 
+private const val CAMERA_REFRESH_INTERVAL_MS = 10_000L
+
 @Composable
 fun CameraCard(
     entity: Entity,
+    baseUrl: URL?,
     onClick: () -> Unit
 ) {
+    val context = LocalPlatformContext.current
+
+    // Auto-refresh timestamp that changes every 10 seconds
+    var refreshTimestamp by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(CAMERA_REFRESH_INTERVAL_MS)
+            refreshTimestamp = System.currentTimeMillis()
+        }
+    }
+
+    val entityPicture = entity.attributes["entity_picture"]?.toString()
+    val baseImageUrl = if (entityPicture != null && baseUrl != null) {
+        UrlUtil.handle(baseUrl, entityPicture)?.toString()
+    } else {
+        null
+    }
+
+    // Build URL with timestamp for cache busting
+    val thumbnailUrl = if (baseImageUrl != null) {
+        val separator = if (baseImageUrl.contains("?")) "&" else "?"
+        "$baseImageUrl${separator}_ts=$refreshTimestamp"
+    } else {
+        null
+    }
+
+    // Keep track of last successful painter to display while loading new image
+    var lastSuccessfulPainter by remember { mutableStateOf<androidx.compose.ui.graphics.painter.Painter?>(null) }
+    var hasLoadedOnce by remember { mutableStateOf(false) }
+
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -354,19 +405,47 @@ fun CameraCard(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Camera placeholder/thumbnail
+            // Camera thumbnail or placeholder
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xFF0F0F23)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Videocam,
-                    contentDescription = "Camera",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(48.dp)
-                )
+                if (thumbnailUrl != null) {
+                    // Show last successful image as background while loading
+                    if (lastSuccessfulPainter != null) {
+                        androidx.compose.foundation.Image(
+                            painter = lastSuccessfulPainter!!,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    // Load new image on top
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(thumbnailUrl)
+                            .build(),
+                        contentDescription = entity.attributes["friendly_name"]?.toString() ?: "Camera",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onState = { state ->
+                            if (state is AsyncImagePainter.State.Success) {
+                                lastSuccessfulPainter = state.painter
+                                hasLoadedOnce = true
+                            }
+                        }
+                    )
+                } else if (!hasLoadedOnce) {
+                    Icon(
+                        imageVector = Icons.Default.Videocam,
+                        contentDescription = "Camera",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
 
             // Camera name overlay

@@ -462,3 +462,8 @@ The Home Assistant server can send commands to the app through `io.homeassistant
 - Deep linking to specific screens
 
 Commands are received and processed asynchronously. Always validate command inputs and handle errors gracefully.
+
+
+
+# ADB
+Install and use on 192.168.60.39 It's a Nvidia Shield ARM32

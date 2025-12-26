@@ -52,6 +52,9 @@ dependencies {
 
     implementation(libs.guava)
 
+    implementation(libs.coil.compose)
+    implementation(libs.coil.okhttp)
+
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 }
