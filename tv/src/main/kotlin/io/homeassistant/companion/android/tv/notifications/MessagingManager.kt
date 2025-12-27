@@ -27,6 +27,7 @@ import io.homeassistant.companion.android.common.util.getActiveNotification
 import io.homeassistant.companion.android.database.AppDatabase
 import io.homeassistant.companion.android.database.notification.NotificationItem
 import io.homeassistant.companion.android.tv.home.HomeActivity
+import io.homeassistant.companion.android.tv.pip.PictureInPictureActivity
 import io.homeassistant.companion.android.tv.sensors.SensorReceiver
 import io.homeassistant.companion.android.util.UrlUtil
 import java.net.URL
@@ -52,6 +53,10 @@ class MessagingManager @Inject constructor(
         private const val IMAGE_URL = "image"
         private const val ICON_URL = "icon_url"
         private const val COMMAND_SCREEN_ON = "command_screen_on"
+        private const val COMMAND_PIP = "command_pip"
+        private const val PIP_STREAM_URL = "stream_url"
+        private const val PIP_STREAM_TYPE = "stream_type"
+        private const val PIP_TITLE = "title"
     }
 
     private val mainScope: CoroutineScope = CoroutineScope(Dispatchers.Main + Job())
@@ -86,6 +91,9 @@ class MessagingManager @Inject constructor(
                 message == COMMAND_SCREEN_ON && allowCommands -> {
                     handleScreenOn()
                 }
+                message == COMMAND_PIP && allowCommands -> {
+                    handlePictureInPicture(notificationData, serverId)
+                }
                 else -> sendNotification(dataWithServerId, now)
             }
         }
@@ -101,6 +109,29 @@ class MessagingManager @Inject constructor(
         )
         wakeLock?.acquire(30 * 1000L) // 30 seconds
         wakeLock?.release()
+    }
+
+    private fun handlePictureInPicture(data: Map<String, String>, serverId: Int) {
+        val streamUrl = data[PIP_STREAM_URL]
+        if (streamUrl.isNullOrBlank()) {
+            Timber.w("PiP command received without stream_url")
+            return
+        }
+
+        val streamType = data[PIP_STREAM_TYPE] ?: PictureInPictureActivity.STREAM_TYPE_IMAGE
+        val title = data[PIP_TITLE]
+
+        // Wake up the screen first
+        handleScreenOn()
+
+        val intent = PictureInPictureActivity.newInstance(
+            context = context,
+            streamUrl = streamUrl,
+            title = title,
+            streamType = streamType,
+            serverId = serverId
+        )
+        context.startActivity(intent)
     }
 
     @SuppressLint("MissingPermission")

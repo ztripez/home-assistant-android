@@ -55,6 +55,9 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.okhttp)
 
+    // Media3 for video playback and PiP
+    implementation(libs.bundles.media3)
+
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 }
